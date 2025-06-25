@@ -8,6 +8,14 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
+-- Ждём, пока размер PlayerGui станет корректным
+if playerGui.AbsoluteSize.X == 0 or playerGui.AbsoluteSize.Y == 0 then
+	playerGui:GetPropertyChangedSignal("AbsoluteSize"):Wait()
+end
+
+local screenWidth = playerGui.AbsoluteSize.X
+local screenHeight = playerGui.AbsoluteSize.Y
+
 local selectedTool = nil
 local draggingTool = nil
 local slots = {}
@@ -19,8 +27,16 @@ screenGui.Name = "CustomInventory"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
+-- Фоновый полупрозрачный кадр, который закрывает инвентарь при тапе вне GUI
+local backgroundFrame = Instance.new("Frame")
+backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
+backgroundFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+backgroundFrame.BackgroundTransparency = 0.5
+backgroundFrame.Visible = false
+backgroundFrame.Parent = screenGui
+
 -- Нижние слоты — размеры зависят от ширины экрана
-local screenWidth = playerGui.AbsoluteSize.X
 local slotWidth = (screenWidth / 2 - 32) / maxSlots -- с отступами
 local slotHeight = slotWidth
 
@@ -37,8 +53,8 @@ uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 -- Верхняя панель с предметами, занимает половину экрана, над слотами по центру
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(0, screenWidth / 2, 0, playerGui.AbsoluteSize.Y / 2)
-scrollFrame.Position = UDim2.new(0.5, -(screenWidth / 4), 1, -slotHeight - 20 - (playerGui.AbsoluteSize.Y / 2) - 10)
+scrollFrame.Size = UDim2.new(0, screenWidth / 2, 0, screenHeight / 2)
+scrollFrame.Position = UDim2.new(0.5, -(screenWidth / 4), 1, -slotHeight - 20 - (screenHeight / 2) - 10)
 scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollFrame.ScrollBarThickness = 6
 scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -52,15 +68,6 @@ grid.CellPadding = UDim2.new(0, 8, 0, 8)
 grid.FillDirectionMaxCells = 999
 grid.FillDirection = Enum.FillDirection.Horizontal
 grid.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Фоновый полупрозрачный кадр, который закрывает инвентарь при тапе вне GUI
-local backgroundFrame = Instance.new("Frame")
-backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
-backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
-backgroundFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-backgroundFrame.BackgroundTransparency = 0.5
-backgroundFrame.Visible = false
-backgroundFrame.Parent = screenGui
 
 -- Функция для показа/скрытия инвентаря
 local function setInventoryVisible(visible)
