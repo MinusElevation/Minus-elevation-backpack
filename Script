@@ -19,6 +19,21 @@ screenGui.Name = "CustomInventory"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
+-- Фоновый полупрозрачный кадр, который закрывает инвентарь при тапе вне GUI
+local backgroundFrame = Instance.new("Frame")
+backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
+backgroundFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+backgroundFrame.BackgroundTransparency = 0.5
+backgroundFrame.Visible = false
+backgroundFrame.Parent = screenGui
+
+backgroundFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		setInventoryVisible(false)
+	end
+end)
+
 -- Кнопка открытия/закрытия инвентаря (справа сверху)
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 100, 0, 40)
@@ -29,27 +44,14 @@ toggleBtn.TextScaled = true
 toggleBtn.Text = "Инвентарь"
 toggleBtn.Parent = screenGui
 
--- Верхняя панель со всеми Tool'ами
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -20, 0, 150)
-scrollFrame.Position = UDim2.new(0, 10, 0, 10)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollFrame.ScrollBarThickness = 6
-scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.Parent = screenGui
+-- Нижние 5 слотов, занимают половину ширины экрана и квадратные
+local screenWidth = playerGui.AbsoluteSize.X
+local slotWidth = (screenWidth / 2 - 32) / maxSlots -- с отступами
+local slotHeight = slotWidth
 
-local grid = Instance.new("UIGridLayout", scrollFrame)
-grid.CellSize = UDim2.new(0, 160, 0, 40)
-grid.CellPadding = UDim2.new(0, 8, 0, 8)
-grid.FillDirectionMaxCells = 999
-grid.FillDirection = Enum.FillDirection.Horizontal
-grid.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Нижние 5 слотов
 local slotFrame = Instance.new("Frame")
-slotFrame.Size = UDim2.new(0, maxSlots * 160 + (maxSlots - 1) * 8, 0, 50)
-slotFrame.Position = UDim2.new(0.5, -slotFrame.Size.X.Offset / 2, 1, -70)
+slotFrame.Size = UDim2.new(0, screenWidth / 2, 0, slotHeight)
+slotFrame.Position = UDim2.new(0.5, -(screenWidth / 4), 1, -slotHeight - 20)
 slotFrame.BackgroundTransparency = 1
 slotFrame.Parent = screenGui
 
@@ -61,7 +63,7 @@ uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 -- Создание слотов
 for i = 1, maxSlots do
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 160, 1, 0)
+	btn.Size = UDim2.new(0, slotWidth, 1, 0)
 	btn.Text = "Empty"
 	btn.Name = "Slot"..i
 	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -77,10 +79,29 @@ for i = 1, maxSlots do
 	end)
 end
 
+-- Верхняя панель с предметами, занимает половину экрана, над слотами по центру
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(0, screenWidth / 2, 0, playerGui.AbsoluteSize.Y / 2)
+scrollFrame.Position = UDim2.new(0.5, -(screenWidth / 4), 1, -slotHeight - 20 - (playerGui.AbsoluteSize.Y / 2) - 10)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.Visible = false
+scrollFrame.Parent = screenGui
+
+local grid = Instance.new("UIGridLayout", scrollFrame)
+grid.CellSize = UDim2.new(0, slotWidth, 0, 40)
+grid.CellPadding = UDim2.new(0, 8, 0, 8)
+grid.FillDirectionMaxCells = 999
+grid.FillDirection = Enum.FillDirection.Horizontal
+grid.SortOrder = Enum.SortOrder.LayoutOrder
+
 -- Функция для показа/скрытия инвентаря
 local function setInventoryVisible(visible)
 	scrollFrame.Visible = visible
 	slotFrame.Visible = visible
+	backgroundFrame.Visible = visible
 end
 
 -- Изначально скрываем инвентарь
@@ -106,7 +127,7 @@ function updateBackpackList()
 		end
 		if not isUsed then
 			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(0, 160, 0, 40)
+			btn.Size = UDim2.new(0, slotWidth, 0, 40)
 			btn.Text = tool.Name
 			btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 			btn.TextColor3 = Color3.new(1,1,1)
@@ -114,8 +135,7 @@ function updateBackpackList()
 			btn.Parent = scrollFrame
 
 			btn.InputBegan:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.Touch or
-				   input.UserInputType == Enum.UserInputType.MouseButton1 then
+				if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 					draggingTool = tool
 				end
 			end)
@@ -150,4 +170,4 @@ backpack.ChildRemoved:Connect(function()
 	end
 end)
 
-updateBackpackList()
+updateBackpackList(
