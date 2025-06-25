@@ -19,32 +19,7 @@ screenGui.Name = "CustomInventory"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Фоновый полупрозрачный кадр, который закрывает инвентарь при тапе вне GUI
-local backgroundFrame = Instance.new("Frame")
-backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
-backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
-backgroundFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-backgroundFrame.BackgroundTransparency = 0.5
-backgroundFrame.Visible = false
-backgroundFrame.Parent = screenGui
-
-backgroundFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		setInventoryVisible(false)
-	end
-end)
-
--- Кнопка открытия/закрытия инвентаря (справа сверху)
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 100, 0, 40)
-toggleBtn.Position = UDim2.new(1, -110, 0, 10) -- справа сверху с небольшим отступом
-toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.TextScaled = true
-toggleBtn.Text = "Инвентарь"
-toggleBtn.Parent = screenGui
-
--- Нижние 5 слотов, занимают половину ширины экрана и квадратные
+-- Нижние слоты — размеры зависят от ширины экрана
 local screenWidth = playerGui.AbsoluteSize.X
 local slotWidth = (screenWidth / 2 - 32) / maxSlots -- с отступами
 local slotHeight = slotWidth
@@ -59,25 +34,6 @@ local uiList = Instance.new("UIListLayout", slotFrame)
 uiList.FillDirection = Enum.FillDirection.Horizontal
 uiList.Padding = UDim.new(0, 8)
 uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- Создание слотов
-for i = 1, maxSlots do
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, slotWidth, 1, 0)
-	btn.Text = "Empty"
-	btn.Name = "Slot"..i
-	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.TextScaled = true
-	btn.Parent = slotFrame
-	slots[i] = nil
-
-	btn.MouseButton1Click:Connect(function()
-		if slots[i] then
-			slots[i].Parent = player.Character
-		end
-	end)
-end
 
 -- Верхняя панель с предметами, занимает половину экрана, над слотами по центру
 local scrollFrame = Instance.new("ScrollingFrame")
@@ -97,6 +53,15 @@ grid.FillDirectionMaxCells = 999
 grid.FillDirection = Enum.FillDirection.Horizontal
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 
+-- Фоновый полупрозрачный кадр, который закрывает инвентарь при тапе вне GUI
+local backgroundFrame = Instance.new("Frame")
+backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+backgroundFrame.Position = UDim2.new(0, 0, 0, 0)
+backgroundFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+backgroundFrame.BackgroundTransparency = 0.5
+backgroundFrame.Visible = false
+backgroundFrame.Parent = screenGui
+
 -- Функция для показа/скрытия инвентаря
 local function setInventoryVisible(visible)
 	scrollFrame.Visible = visible
@@ -104,13 +69,46 @@ local function setInventoryVisible(visible)
 	backgroundFrame.Visible = visible
 end
 
--- Изначально скрываем инвентарь
-setInventoryVisible(false)
+-- Обработчик закрытия при тапе по фону
+backgroundFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		setInventoryVisible(false)
+	end
+end)
+
+-- Кнопка открытия/закрытия инвентаря (справа сверху)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 100, 0, 40)
+toggleBtn.Position = UDim2.new(1, -110, 0, 10) -- справа сверху с небольшим отступом
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.TextScaled = true
+toggleBtn.Text = "Инвентарь"
+toggleBtn.Parent = screenGui
 
 toggleBtn.MouseButton1Click:Connect(function()
 	local current = scrollFrame.Visible
 	setInventoryVisible(not current)
 end)
+
+-- Создание слотов
+for i = 1, maxSlots do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, slotWidth, 1, 0)
+	btn.Text = "Empty"
+	btn.Name = "Slot"..i
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextScaled = true
+	btn.Parent = slotFrame
+	slots[i] = nil
+
+	btn.MouseButton1Click:Connect(function()
+		if slots[i] then
+			slots[i].Parent = player.Character
+		end
+	end)
+end
 
 -- Обновление панели Backpack
 function updateBackpackList()
@@ -170,4 +168,4 @@ backpack.ChildRemoved:Connect(function()
 	end
 end)
 
-updateBackpackList(
+updateBackpackList()
