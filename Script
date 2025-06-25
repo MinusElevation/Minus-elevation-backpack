@@ -1,0 +1,153 @@
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+local playerGui = player:WaitForChild("PlayerGui")
+
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+
+local selectedTool = nil
+local draggingTool = nil
+local slots = {}
+local maxSlots = 5
+
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomInventory"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Кнопка открытия/закрытия инвентаря (справа сверху)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 100, 0, 40)
+toggleBtn.Position = UDim2.new(1, -110, 0, 10) -- справа сверху с небольшим отступом
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.TextScaled = true
+toggleBtn.Text = "Инвентарь"
+toggleBtn.Parent = screenGui
+
+-- Верхняя панель со всеми Tool'ами
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 0, 150)
+scrollFrame.Position = UDim2.new(0, 10, 0, 10)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.Parent = screenGui
+
+local grid = Instance.new("UIGridLayout", scrollFrame)
+grid.CellSize = UDim2.new(0, 160, 0, 40)
+grid.CellPadding = UDim2.new(0, 8, 0, 8)
+grid.FillDirectionMaxCells = 999
+grid.FillDirection = Enum.FillDirection.Horizontal
+grid.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Нижние 5 слотов
+local slotFrame = Instance.new("Frame")
+slotFrame.Size = UDim2.new(0, maxSlots * 160 + (maxSlots - 1) * 8, 0, 50)
+slotFrame.Position = UDim2.new(0.5, -slotFrame.Size.X.Offset / 2, 1, -70)
+slotFrame.BackgroundTransparency = 1
+slotFrame.Parent = screenGui
+
+local uiList = Instance.new("UIListLayout", slotFrame)
+uiList.FillDirection = Enum.FillDirection.Horizontal
+uiList.Padding = UDim.new(0, 8)
+uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Создание слотов
+for i = 1, maxSlots do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 160, 1, 0)
+	btn.Text = "Empty"
+	btn.Name = "Slot"..i
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextScaled = true
+	btn.Parent = slotFrame
+	slots[i] = nil
+
+	btn.MouseButton1Click:Connect(function()
+		if slots[i] then
+			slots[i].Parent = player.Character
+		end
+	end)
+end
+
+-- Функция для показа/скрытия инвентаря
+local function setInventoryVisible(visible)
+	scrollFrame.Visible = visible
+	slotFrame.Visible = visible
+end
+
+-- Изначально скрываем инвентарь
+setInventoryVisible(false)
+
+toggleBtn.MouseButton1Click:Connect(function()
+	local current = scrollFrame.Visible
+	setInventoryVisible(not current)
+end)
+
+-- Обновление панели Backpack
+function updateBackpackList()
+	scrollFrame:ClearAllChildren()
+	local tools = backpack:GetChildren()
+
+	for _, tool in ipairs(tools) do
+		local isUsed = false
+		for _, s in pairs(slots) do
+			if s == tool then
+				isUsed = true
+				break
+			end
+		end
+		if not isUsed then
+			local btn = Instance.new("TextButton")
+			btn.Size = UDim2.new(0, 160, 0, 40)
+			btn.Text = tool.Name
+			btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.TextScaled = true
+			btn.Parent = scrollFrame
+
+			btn.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.Touch or
+				   input.UserInputType == Enum.UserInputType.MouseButton1 then
+					draggingTool = tool
+				end
+			end)
+		end
+	end
+end
+
+-- Обработка drag-n-drop в слоты
+for i = 1, maxSlots do
+	local btn = slotFrame:FindFirstChild("Slot"..i)
+	btn.InputEnded:Connect(function(input)
+		if (input.UserInputType == Enum.UserInputType.Touch or
+			input.UserInputType == Enum.UserInputType.MouseButton1) and draggingTool then
+			slots[i] = draggingTool
+			btn.Text = draggingTool.Name
+			draggingTool = nil
+			updateBackpackList()
+		end
+	end)
+end
+
+-- Автообновление
+backpack.ChildAdded:Connect(updateBackpackList)
+backpack.ChildRemoved:Connect(function()
+	updateBackpackList()
+	for i, tool in pairs(slots) do
+		if tool and not tool:IsDescendantOf(backpack) then
+			slots[i] = nil
+			local btn = slotFrame:FindFirstChild("Slot"..i)
+			if btn then btn.Text = "Empty" end
+		end
+	end
+end)
+
+updateBackpackList()
